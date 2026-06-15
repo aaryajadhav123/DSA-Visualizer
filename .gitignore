@@ -1,0 +1,17 @@
+# Java
+target/
+*.class
+*.jar
+
+# IntelliJ
+.idea/
+*.iml
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
