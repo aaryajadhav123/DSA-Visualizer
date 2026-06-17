@@ -1,11 +1,21 @@
 package com.aarya.dsavisualizer.controller;
 
+import com.aarya.dsavisualizer.dto.StepDTO;
+import com.aarya.dsavisualizer.service.VisualizerService;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:5175")
+@CrossOrigin(origins = "*")
 public class VisualizerController {
+
+    private final VisualizerService visualizerService;
+
+    public VisualizerController(VisualizerService visualizerService) {
+        this.visualizerService = visualizerService;
+    }
 
     @GetMapping("/")
     public String home() {
@@ -13,11 +23,9 @@ public class VisualizerController {
     }
 
     @PostMapping("/visualize")
-    public String visualize(@RequestBody String code) {
+    public List<StepDTO> visualize(@RequestBody String code) {
 
-        System.out.println("Received Code:");
-        System.out.println(code);
+        return visualizerService.generateSteps(code);
 
-        return "Code Received Successfully";
     }
 }

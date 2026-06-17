@@ -3,7 +3,7 @@ import { useState } from "react";
 function App() {
 
     const [code, setCode] = useState("");
-    const [response, setResponse] = useState("");
+    const [steps, setSteps] = useState([]);
 
     const handleVisualize = async () => {
 
@@ -18,9 +18,9 @@ function App() {
             }
         );
 
-        const data = await res.text();
+        const data = await res.json();
 
-        setResponse(data);
+        setSteps(data);
     };
 
     return (
@@ -42,7 +42,26 @@ function App() {
                 Visualize
             </button>
 
-            <h3>{response}</h3>
+            <div>
+    {steps.map((stepObj) => (
+        <div
+            key={stepObj.step}
+            style={{
+                border: "1px solid black",
+                padding: "10px",
+                marginTop: "10px"
+            }}
+        >
+            <h3>Step {stepObj.step}</h3>
+
+            {Object.entries(stepObj.variables).map(([name, value]) => (
+                <p key={name}>
+                    {name} = {value}
+                </p>
+            ))}
+        </div>
+    ))}
+</div>
 
         </div>
     );
