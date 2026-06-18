@@ -35,15 +35,112 @@ public class VisualizerService {
 
                 variables.put(variableName, value);
 
-                steps.add(
-                        new StepDTO(
-                                stepNumber++,
-                                new HashMap<>(variables)
-                        )
-                );
+                addStep(steps, variables, stepNumber++);
+            }
+            else if(line.contains("="))
+            {
+                String statement = line.replace(";", "");
+
+                String[] parts = statement.split("=");
+
+                String variableName = parts[0].trim();
+
+                String expression = parts[1].trim();
+
+                String operator = "";
+
+                if(expression.contains("+")) {
+                    operator = "+";
+                }
+                else if(expression.contains("-")) {
+                    operator = "-";
+                }
+                else if(expression.contains("*")) {
+                    operator = "*";
+                }
+                else if(expression.contains("/")) {
+                    operator = "/";
+                }
+
+                if(operator.equals("")) {
+                    int value = getValue(expression, variables);
+
+                    variables.put(variableName, value);
+
+                    addStep(steps, variables, stepNumber++);
+
+                    continue;
+                }
+
+
+
+                String[] operands;
+
+                if(operator.equals("+")) {
+                    operands = expression.split("\\+");
+                }
+                else if(operator.equals("-")) {
+                    operands = expression.split("-");
+                }
+                else if(operator.equals("*")) {
+                    operands = expression.split("\\*");
+                }
+                else {
+                    operands = expression.split("/");
+                }
+
+                String leftOperand = operands[0].trim();
+                String rightOperand = operands[1].trim();
+
+                int leftValue = getValue(leftOperand, variables);
+                int rightValue = getValue(rightOperand, variables);
+
+                int result = 0;
+
+                if(operator.equals("+")) {
+                    result = leftValue + rightValue;
+                }
+                else if(operator.equals("-")) {
+                    result = leftValue - rightValue;
+                }
+                else if(operator.equals("*")) {
+                    result = leftValue * rightValue;
+                }
+                else if(operator.equals("/")) {
+                    result = leftValue / rightValue;
+                }
+
+                variables.put(variableName, result);
+
+                addStep(steps, variables, stepNumber++);
+
             }
         }
 
         return steps;
+    }
+
+    private int getValue(String operand,
+                         Map<String, Integer> variables) {
+
+        if(variables.containsKey(operand)) {
+            return variables.get(operand);
+        }
+
+        return Integer.parseInt(operand);
+    }
+
+    private void addStep(
+            List<StepDTO> steps,
+            Map<String, Integer> variables,
+            int stepNumber
+    ) {
+
+        steps.add(
+                new StepDTO(
+                        stepNumber,
+                        new HashMap<>(variables)
+                )
+        );
     }
 }
