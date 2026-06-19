@@ -17,10 +17,46 @@ public class VisualizerService {
         String[] lines = code.split("\n");
 
         int stepNumber = 1;
+        boolean executeBlock = true;
+        boolean prevBool = false;
 
         for(String line : lines) {
 
             line = line.trim();
+
+            if(!executeBlock) {
+
+                if(line.equals("}")) {
+                    executeBlock = true;
+                }
+
+                continue;
+            }
+
+            if(line.startsWith("if")) {
+
+                String condition = line.substring(
+                        line.indexOf("(") + 1,
+                        line.indexOf(")")
+
+
+                );
+
+                prevBool = evaluateCondition(
+                        condition,
+                        variables
+                );
+
+                executeBlock = prevBool;
+                continue;
+
+
+            }
+
+            if(line.startsWith("else")) {
+                executeBlock=!prevBool;
+                continue;
+            }
 
             if(line.startsWith("int ")) {
 
@@ -123,11 +159,67 @@ public class VisualizerService {
     private int getValue(String operand,
                          Map<String, Integer> variables) {
 
+
         if(variables.containsKey(operand)) {
             return variables.get(operand);
         }
 
         return Integer.parseInt(operand);
+    }
+
+    private boolean evaluateCondition(
+            String condition,
+            Map<String, Integer> variables
+    ) {
+
+        String operator;
+
+
+        if(condition.contains(">=")) {
+            operator = ">=";
+        }
+        else if(condition.contains("<=")) {
+            operator = "<=";
+        }
+        else if(condition.contains("!=")) {
+            operator = "!=";
+        }
+        else if(condition.contains("==")) {
+            operator = "==";
+        }
+        else if(condition.contains(">")) {
+            operator = ">";
+        }
+        else {
+            operator = "<";
+        }
+
+        String[] parts = condition.split(operator);
+
+        String leftOperand = parts[0].trim();
+        String rightOperand = parts[1].trim();
+
+        int leftValue = getValue(leftOperand, variables);
+        int rightValue = getValue(rightOperand, variables);
+
+        if(operator.equals("==")) {
+            return leftValue == rightValue;
+        }
+        else if(operator.equals("!=")) {
+            return leftValue != rightValue;
+        }
+        else if(operator.equals(">=")) {
+            return leftValue >= rightValue;
+        }
+        else if(operator.equals("<=")) {
+            return leftValue <= rightValue;
+            }
+        else if(operator.equals(">")) {
+            return leftValue > rightValue;
+        }
+        else {
+            return leftValue < rightValue;
+        }
     }
 
     private void addStep(
