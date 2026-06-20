@@ -19,8 +19,14 @@ public class VisualizerService {
         int stepNumber = 1;
         boolean executeBlock = true;
         boolean prevBool = false;
+        int whileStartLine = -1;
+        String whileCondition = "";
 
-        for(String line : lines) {
+        int currentLine = 0;
+
+        while(currentLine < lines.length) {
+
+            String line = lines[currentLine];
 
             line = line.trim();
 
@@ -30,6 +36,41 @@ public class VisualizerService {
                     executeBlock = true;
                 }
 
+                currentLine++;
+
+                continue;
+            }
+
+            if(line.equals("}") && whileStartLine != -1) {
+
+                if(evaluateCondition(whileCondition, variables)) {
+
+                    currentLine = whileStartLine;
+
+                    continue;
+                }
+                else {
+
+                    whileStartLine = -1;
+                    whileCondition = "";
+                }
+            }
+
+            if(line.startsWith("while")) {
+
+                whileStartLine = currentLine;
+
+                whileCondition = line.substring(
+                        line.indexOf("(") + 1,
+                        line.indexOf(")")
+                );
+
+                executeBlock = evaluateCondition(
+                        whileCondition,
+                        variables
+                );
+
+                currentLine++;
                 continue;
             }
 
@@ -48,6 +89,7 @@ public class VisualizerService {
                 );
 
                 executeBlock = prevBool;
+                currentLine++;
                 continue;
 
 
@@ -55,6 +97,7 @@ public class VisualizerService {
 
             if(line.startsWith("else")) {
                 executeBlock=!prevBool;
+                currentLine++;
                 continue;
             }
 
@@ -105,6 +148,8 @@ public class VisualizerService {
 
                     addStep(steps, variables, stepNumber++);
 
+                    currentLine++;
+
                     continue;
                 }
 
@@ -151,6 +196,8 @@ public class VisualizerService {
                 addStep(steps, variables, stepNumber++);
 
             }
+
+            currentLine++;
         }
 
         return steps;
