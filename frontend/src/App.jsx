@@ -47,9 +47,11 @@ function App() {
         <div
             key={stepObj.step}
             style={{
-                border: "1px solid black",
-                padding: "10px",
-                marginTop: "10px"
+                border: "1px solid #ddd",
+                borderRadius: "10px",
+                padding: "15px",
+                marginTop: "15px",
+                boxShadow: "0 2px 5px rgba(0,0,0,0.1)"
             }}
         >
             <h3>Step {stepObj.step}</h3>
@@ -58,7 +60,58 @@ function App() {
                 <p key={name}>
                     {name} = {value}
                 </p>
+                
             ))}
+
+{Object.entries(stepObj.arrays || {}).map(([arrayName, values]) => (
+    <div key={arrayName}>
+        <p>{arrayName}</p>
+
+        <div
+    style={{
+        display: "flex",
+        gap: "5px",
+        marginBottom: "5px"
+    }}
+>
+    {values.map((_, index) => (
+        <div
+            key={index}
+            style={{
+                minWidth: "60px",
+                textAlign: "center"
+            }}
+        >
+            {index}
+        </div>
+    ))}
+</div>
+
+        <div
+            style={{
+                display: "flex",
+                gap: "5px"
+            }}
+        >
+            {values.map((value, index) => (
+                <div
+                    key={index}
+                    style={{
+                        border: "2px solid #2563eb",
+                        borderRadius: "8px",
+                        padding: "12px 0",
+                        minWidth: "60px",
+                        textAlign: "center",
+                        fontWeight: "bold",
+                        backgroundColor: "#eff6ff"
+                    }}
+                >
+                    {value}
+                </div>
+            ))}
+        </div>
+    </div>
+))}
         </div>
     ))}
 </div>

@@ -4,6 +4,7 @@ import com.aarya.dsavisualizer.dto.StepDTO;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.ArrayList;
 
 @Service
 public class VisualizerService {
@@ -13,6 +14,7 @@ public class VisualizerService {
         List<StepDTO> steps = new ArrayList<>();
 
         Map<String, Integer> variables = new HashMap<>();
+        Map<String, ArrayList<Integer>> arrays = new HashMap<>();
 
         String[] lines = code.split("\n");
 
@@ -43,7 +45,7 @@ public class VisualizerService {
 
             if(line.equals("}") && whileStartLine != -1) {
 
-                if(evaluateCondition(whileCondition, variables)) {
+                if(evaluateCondition(whileCondition, variables, arrays)) {
 
                     currentLine = whileStartLine;
 
@@ -67,7 +69,8 @@ public class VisualizerService {
 
                 executeBlock = evaluateCondition(
                         whileCondition,
-                        variables
+                        variables,
+                        arrays
                 );
 
                 currentLine++;
@@ -85,7 +88,8 @@ public class VisualizerService {
 
                 prevBool = evaluateCondition(
                         condition,
-                        variables
+                        variables,
+                        arrays
                 );
 
                 executeBlock = prevBool;
@@ -101,6 +105,44 @@ public class VisualizerService {
                 continue;
             }
 
+            if(line.startsWith("int[]")) {
+
+                String statement = line
+                        .replace("int[]", "")
+                        .replace(";", "");
+
+                String[] parts = statement.split("=");
+
+                String arrayName = parts[0].trim();
+
+                String values = parts[1].trim();
+
+                values = values.replace("{", "")
+                        .replace("}", "");
+
+                String[] numbers = values.split(",");
+
+                ArrayList<Integer> arrValues = new ArrayList<>();
+
+                for(String num : numbers) {
+                    arrValues.add(
+                            Integer.parseInt(num.trim())
+                    );
+                }
+
+                arrays.put(arrayName, arrValues);
+                addStep(
+                        steps,
+                        variables,
+                        arrays,
+                        stepNumber++
+                );
+
+
+                currentLine++;
+                continue;
+            }
+
             if(line.startsWith("int ")) {
 
                 String statement = line.replace("int ", "")
@@ -110,11 +152,15 @@ public class VisualizerService {
 
                 String variableName = parts[0].trim();
 
-                int value = Integer.parseInt(parts[1].trim());
+                int value = getValue(
+                        parts[1].trim(),
+                        variables,
+                        arrays
+                );
 
                 variables.put(variableName, value);
 
-                addStep(steps, variables, stepNumber++);
+                addStep(steps, variables,arrays, stepNumber++);
             }
             else if(line.contains("="))
             {
@@ -123,6 +169,39 @@ public class VisualizerService {
                 String[] parts = statement.split("=");
 
                 String variableName = parts[0].trim();
+
+                if(variableName.contains("[") && variableName.contains("]")) {
+
+                    String arrayName = variableName.substring(
+                            0,
+                            variableName.indexOf("[")
+                    );
+
+                    int index = Integer.parseInt(
+                            variableName.substring(
+                                    variableName.indexOf("[") + 1,
+                                    variableName.indexOf("]")
+                            )
+                    );
+
+                    int value = getValue(
+                            parts[1].trim(),
+                            variables,
+                            arrays
+                    );
+
+                    arrays.get(arrayName).set(index, value);
+                    addStep(
+                            steps,
+                            variables,
+                            arrays,
+                            stepNumber++
+                    );
+
+
+                    currentLine++;
+                    continue;
+                }
 
                 String expression = parts[1].trim();
 
@@ -142,11 +221,11 @@ public class VisualizerService {
                 }
 
                 if(operator.equals("")) {
-                    int value = getValue(expression, variables);
+                    int value = getValue(expression, variables, arrays);
 
                     variables.put(variableName, value);
 
-                    addStep(steps, variables, stepNumber++);
+                    addStep(steps, variables,arrays, stepNumber++);
 
                     currentLine++;
 
@@ -173,8 +252,8 @@ public class VisualizerService {
                 String leftOperand = operands[0].trim();
                 String rightOperand = operands[1].trim();
 
-                int leftValue = getValue(leftOperand, variables);
-                int rightValue = getValue(rightOperand, variables);
+                int leftValue = getValue(leftOperand, variables, arrays);
+                int rightValue = getValue(rightOperand, variables, arrays);
 
                 int result = 0;
 
@@ -193,7 +272,7 @@ public class VisualizerService {
 
                 variables.put(variableName, result);
 
-                addStep(steps, variables, stepNumber++);
+                addStep(steps, variables,arrays, stepNumber++);
 
             }
 
@@ -203,8 +282,28 @@ public class VisualizerService {
         return steps;
     }
 
-    private int getValue(String operand,
-                         Map<String, Integer> variables) {
+    private int getValue(
+            String operand,
+            Map<String, Integer> variables,
+            Map<String, ArrayList<Integer>> arrays
+    ) {
+
+        if(operand.contains("[") && operand.contains("]")) {
+
+            String arrayName = operand.substring(
+                    0,
+                    operand.indexOf("[")
+            );
+
+            int index = Integer.parseInt(
+                    operand.substring(
+                            operand.indexOf("[") + 1,
+                            operand.indexOf("]")
+                    )
+            );
+
+            return arrays.get(arrayName).get(index);
+        }
 
 
         if(variables.containsKey(operand)) {
@@ -216,7 +315,8 @@ public class VisualizerService {
 
     private boolean evaluateCondition(
             String condition,
-            Map<String, Integer> variables
+            Map<String, Integer> variables,
+            Map<String, ArrayList<Integer>> arrays
     ) {
 
         String operator;
@@ -246,8 +346,8 @@ public class VisualizerService {
         String leftOperand = parts[0].trim();
         String rightOperand = parts[1].trim();
 
-        int leftValue = getValue(leftOperand, variables);
-        int rightValue = getValue(rightOperand, variables);
+        int leftValue = getValue(leftOperand, variables, arrays);
+        int rightValue = getValue(rightOperand, variables, arrays);
 
         if(operator.equals("==")) {
             return leftValue == rightValue;
@@ -272,13 +372,23 @@ public class VisualizerService {
     private void addStep(
             List<StepDTO> steps,
             Map<String, Integer> variables,
+            Map<String, ArrayList<Integer>> arrays,
             int stepNumber
     ) {
+        Map<String, ArrayList<Integer>> arraysCopy = new HashMap<>();
+
+        for(String key : arrays.keySet()) {
+            arraysCopy.put(
+                    key,
+                    new ArrayList<>(arrays.get(key))
+            );
+        }
 
         steps.add(
                 new StepDTO(
                         stepNumber,
-                        new HashMap<>(variables)
+                        new HashMap<>(variables),
+                        arraysCopy
                 )
         );
     }
