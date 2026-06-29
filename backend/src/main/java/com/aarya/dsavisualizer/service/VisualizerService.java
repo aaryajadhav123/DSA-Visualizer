@@ -23,6 +23,9 @@ public class VisualizerService {
         boolean prevBool = false;
         int whileStartLine = -1;
         String whileCondition = "";
+        int forStartLine = -1;
+        String forCondition = "";
+        String forUpdate = "";
 
         int currentLine = 0;
 
@@ -58,6 +61,93 @@ public class VisualizerService {
                 }
             }
 
+            else if(line.equals("}") && forStartLine != -1) {
+
+
+                if(forUpdate.endsWith("++")) {
+
+                    String variable = forUpdate.replace("++", "").trim();
+
+                    variables.put(
+                            variable,
+                            variables.get(variable) + 1
+                    );
+
+                    addStep(
+                            steps,
+                            variables,
+                            arrays,
+                            stepNumber++
+                    );
+                }
+
+                if(evaluateCondition(forCondition, variables, arrays)) {
+
+                    currentLine = forStartLine;
+
+                    continue;
+                }
+                else {
+
+                    forStartLine = -1;
+                    forCondition = "";
+                    forUpdate = "";
+                }
+            }
+
+            else if(line.startsWith("for")) {
+
+                String inside = line.substring(
+                        line.indexOf("(") + 1,
+                        line.indexOf(")")
+                );
+
+                String[] parts = inside.split(";");
+
+                // Initialization
+                String initialization = parts[0].trim();
+
+                // Condition
+                forCondition = parts[1].trim();
+
+                // Update
+                forUpdate = parts[2].trim();
+
+                // Execute initialization as a normal statement
+                if(initialization.startsWith("int ")) {
+
+                    initialization = initialization.replace("int ", "");
+
+                    String[] initParts = initialization.split("=");
+
+                    String variableName = initParts[0].trim();
+
+                    int value = getValue(
+                            initParts[1].trim(),
+                            variables,
+                            arrays
+                    );
+
+                    variables.put(variableName, value);
+
+                    addStep(
+                            steps,
+                            variables,
+                            arrays,
+                            stepNumber++
+                    );
+                }
+
+                forStartLine = currentLine + 1;
+
+                executeBlock = evaluateCondition(
+                        forCondition,
+                        variables,
+                        arrays
+                );
+                currentLine++;
+                continue;
+            }
             if(line.startsWith("while")) {
 
                 whileStartLine = currentLine;
@@ -177,11 +267,15 @@ public class VisualizerService {
                             variableName.indexOf("[")
                     );
 
-                    int index = Integer.parseInt(
-                            variableName.substring(
-                                    variableName.indexOf("[") + 1,
-                                    variableName.indexOf("]")
-                            )
+                    String indexText = variableName.substring(
+                            variableName.indexOf("[") + 1,
+                            variableName.indexOf("]")
+                    ).trim();
+
+                    int index = getValue(
+                            indexText,
+                            variables,
+                            arrays
                     );
 
                     int value = getValue(
@@ -295,11 +389,15 @@ public class VisualizerService {
                     operand.indexOf("[")
             );
 
-            int index = Integer.parseInt(
-                    operand.substring(
-                            operand.indexOf("[") + 1,
-                            operand.indexOf("]")
-                    )
+            String indexText = operand.substring(
+                    operand.indexOf("[") + 1,
+                    operand.indexOf("]")
+            ).trim();
+
+            int index = getValue(
+                    indexText,
+                    variables,
+                    arrays
             );
 
             return arrays.get(arrayName).get(index);
