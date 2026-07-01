@@ -64,6 +64,7 @@ public class VisualizerService {
             else if(line.equals("}") && forStartLine != -1) {
 
 
+                // i++
                 if(forUpdate.endsWith("++")) {
 
                     String variable = forUpdate.replace("++", "").trim();
@@ -72,14 +73,84 @@ public class VisualizerService {
                             variable,
                             variables.get(variable) + 1
                     );
+                }
 
-                    addStep(
-                            steps,
-                            variables,
-                            arrays,
-                            stepNumber++
+// i--
+                else if(forUpdate.endsWith("--")) {
+
+                    String variable = forUpdate.replace("--", "").trim();
+
+                    variables.put(
+                            variable,
+                            variables.get(variable) - 1
                     );
                 }
+
+// i += 2
+                else if(forUpdate.contains("+=")) {
+
+                    String[] parts = forUpdate.split("\\+=");
+
+                    String variable = parts[0].trim();
+
+                    int value = evaluateExpression(
+                            parts[1].trim(),
+                            variables,
+                            arrays
+                    );
+
+                    variables.put(
+                            variable,
+                            variables.get(variable) + value
+                    );
+                }
+
+// i -= 2
+                else if(forUpdate.contains("-=")) {
+
+                    String[] parts = forUpdate.split("-=");
+
+                    String variable = parts[0].trim();
+
+                    int value = evaluateExpression(
+                            parts[1].trim(),
+                            variables,
+                            arrays
+                    );
+
+                    variables.put(
+                            variable,
+                            variables.get(variable) - value
+                    );
+                }
+
+// i = i + 2
+// i = i - 2
+                else if(forUpdate.contains("=")) {
+
+                    String[] parts = forUpdate.split("=");
+
+                    String variable = parts[0].trim();
+
+                    int value = evaluateExpression(
+                            parts[1].trim(),
+                            variables,
+                            arrays
+                    );
+
+
+                    variables.put(
+                            variable,
+                            value
+                    );
+                }
+
+                addStep(
+                        steps,
+                        variables,
+                        arrays,
+                        stepNumber++
+                );
 
                 if(evaluateCondition(forCondition, variables, arrays)) {
 
@@ -278,7 +349,7 @@ public class VisualizerService {
                             arrays
                     );
 
-                    int value = getValue(
+                    int value = evaluateExpression(
                             parts[1].trim(),
                             variables,
                             arrays
@@ -299,74 +370,20 @@ public class VisualizerService {
 
                 String expression = parts[1].trim();
 
-                String operator = "";
+                int value = evaluateExpression(
+                        expression,
+                        variables,
+                        arrays
+                );
 
-                if(expression.contains("+")) {
-                    operator = "+";
-                }
-                else if(expression.contains("-")) {
-                    operator = "-";
-                }
-                else if(expression.contains("*")) {
-                    operator = "*";
-                }
-                else if(expression.contains("/")) {
-                    operator = "/";
-                }
+                variables.put(variableName, value);
 
-                if(operator.equals("")) {
-                    int value = getValue(expression, variables, arrays);
-
-                    variables.put(variableName, value);
-
-                    addStep(steps, variables,arrays, stepNumber++);
-
-                    currentLine++;
-
-                    continue;
-                }
-
-
-
-                String[] operands;
-
-                if(operator.equals("+")) {
-                    operands = expression.split("\\+");
-                }
-                else if(operator.equals("-")) {
-                    operands = expression.split("-");
-                }
-                else if(operator.equals("*")) {
-                    operands = expression.split("\\*");
-                }
-                else {
-                    operands = expression.split("/");
-                }
-
-                String leftOperand = operands[0].trim();
-                String rightOperand = operands[1].trim();
-
-                int leftValue = getValue(leftOperand, variables, arrays);
-                int rightValue = getValue(rightOperand, variables, arrays);
-
-                int result = 0;
-
-                if(operator.equals("+")) {
-                    result = leftValue + rightValue;
-                }
-                else if(operator.equals("-")) {
-                    result = leftValue - rightValue;
-                }
-                else if(operator.equals("*")) {
-                    result = leftValue * rightValue;
-                }
-                else if(operator.equals("/")) {
-                    result = leftValue / rightValue;
-                }
-
-                variables.put(variableName, result);
-
-                addStep(steps, variables,arrays, stepNumber++);
+                addStep(
+                        steps,
+                        variables,
+                        arrays,
+                        stepNumber++
+                );
 
             }
 
@@ -381,6 +398,12 @@ public class VisualizerService {
             Map<String, Integer> variables,
             Map<String, ArrayList<Integer>> arrays
     ) {
+        if(operand.endsWith(".length")) {
+
+            String arrayName = operand.replace(".length", "");
+
+            return arrays.get(arrayName).size();
+        }
 
         if(operand.contains("[") && operand.contains("]")) {
 
@@ -410,6 +433,74 @@ public class VisualizerService {
 
         return Integer.parseInt(operand);
     }
+
+    private int evaluateExpression(
+            String expression,
+            Map<String, Integer> variables,
+            Map<String, ArrayList<Integer>> arrays
+    ) {
+
+        String operator = "";
+
+        if(expression.contains("+")) {
+            operator = "+";
+        }
+        else if(expression.contains("-")) {
+            operator = "-";
+        }
+        else if(expression.contains("*")) {
+            operator = "*";
+        }
+        else if(expression.contains("/")) {
+            operator = "/";
+        }
+
+        if(operator.equals("")) {
+            return getValue(expression, variables, arrays);
+        }
+
+        String[] operands;
+
+        if(operator.equals("+")) {
+            operands = expression.split("\\+");
+        }
+        else if(operator.equals("-")) {
+            operands = expression.split("-");
+        }
+        else if(operator.equals("*")) {
+            operands = expression.split("\\*");
+        }
+        else {
+            operands = expression.split("/");
+        }
+
+        int leftValue = getValue(
+                operands[0].trim(),
+                variables,
+                arrays
+        );
+
+        int rightValue = getValue(
+                operands[1].trim(),
+                variables,
+                arrays
+        );
+
+        if(operator.equals("+")) {
+            return leftValue + rightValue;
+        }
+        else if(operator.equals("-")) {
+            return leftValue - rightValue;
+        }
+        else if(operator.equals("*")) {
+            return leftValue * rightValue;
+        }
+        else {
+            return leftValue / rightValue;
+        }
+    }
+
+
 
     private boolean evaluateCondition(
             String condition,
