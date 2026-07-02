@@ -2,6 +2,7 @@ package com.aarya.dsavisualizer.service;
 
 import com.aarya.dsavisualizer.dto.StepDTO;
 import org.springframework.stereotype.Service;
+import com.aarya.dsavisualizer.model.LoopFrame;
 
 import java.util.*;
 import java.util.ArrayList;
@@ -21,11 +22,7 @@ public class VisualizerService {
         int stepNumber = 1;
         boolean executeBlock = true;
         boolean prevBool = false;
-        int whileStartLine = -1;
-        String whileCondition = "";
-        int forStartLine = -1;
-        String forCondition = "";
-        String forUpdate = "";
+        Stack<LoopFrame> loopStack = new Stack<>();
 
         int currentLine = 0;
 
@@ -46,22 +43,41 @@ public class VisualizerService {
                 continue;
             }
 
-            if(line.equals("}") && whileStartLine != -1) {
+            if(
+                    line.equals("}")
+                            && !loopStack.isEmpty()
+                            && loopStack.peek().getType().equals("while")
+            ) {
 
-                if(evaluateCondition(whileCondition, variables, arrays)) {
+                LoopFrame frame = loopStack.peek();
 
-                    currentLine = whileStartLine;
+
+                if(evaluateCondition(
+                        frame.getCondition(),
+                        variables,
+                        arrays
+                )) {
+
+                    currentLine = frame.getStartLine();
 
                     continue;
                 }
                 else {
 
-                    whileStartLine = -1;
-                    whileCondition = "";
+                    loopStack.pop();
                 }
             }
 
-            else if(line.equals("}") && forStartLine != -1) {
+            else if(
+                    line.equals("}")
+                            && !loopStack.isEmpty()
+                            && loopStack.peek().getType().equals("for")
+            ) {
+
+                LoopFrame frame = loopStack.peek();
+
+                String forCondition = frame.getCondition();
+                String forUpdate = frame.getUpdate();
 
 
                 // i++
@@ -154,15 +170,13 @@ public class VisualizerService {
 
                 if(evaluateCondition(forCondition, variables, arrays)) {
 
-                    currentLine = forStartLine;
+                    currentLine = frame.getStartLine();
 
                     continue;
                 }
                 else {
 
-                    forStartLine = -1;
-                    forCondition = "";
-                    forUpdate = "";
+                    loopStack.pop();
                 }
             }
 
@@ -179,10 +193,9 @@ public class VisualizerService {
                 String initialization = parts[0].trim();
 
                 // Condition
-                forCondition = parts[1].trim();
+                String forCondition = parts[1].trim();
 
-                // Update
-                forUpdate = parts[2].trim();
+                String forUpdate = parts[2].trim();
 
                 // Execute initialization as a normal statement
                 if(initialization.startsWith("int ")) {
@@ -209,7 +222,14 @@ public class VisualizerService {
                     );
                 }
 
-                forStartLine = currentLine + 1;
+                loopStack.push(
+                        new LoopFrame(
+                                "for",
+                                currentLine + 1,
+                                forCondition,
+                                forUpdate
+                        )
+                );
 
                 executeBlock = evaluateCondition(
                         forCondition,
@@ -221,12 +241,27 @@ public class VisualizerService {
             }
             if(line.startsWith("while")) {
 
-                whileStartLine = currentLine;
-
-                whileCondition = line.substring(
+                String whileCondition = line.substring(
                         line.indexOf("(") + 1,
                         line.indexOf(")")
                 );
+
+                if (
+                        loopStack.isEmpty()
+                                || !loopStack.peek().getType().equals("while")
+                                || loopStack.peek().getStartLine() != currentLine
+                ) {
+                    loopStack.push(
+                            new LoopFrame(
+                                    "while",
+                                    currentLine,
+                                    whileCondition,
+                                    null
+                            )
+                    );
+                }
+
+
 
                 executeBlock = evaluateCondition(
                         whileCondition,
@@ -376,6 +411,8 @@ public class VisualizerService {
                         arrays
                 );
 
+                System.out.println("Assigning " + variableName + " = " + value);
+
                 variables.put(variableName, value);
 
                 addStep(
@@ -388,6 +425,12 @@ public class VisualizerService {
             }
 
             currentLine++;
+        }
+
+        System.out.println("Total Steps = " + steps.size());
+
+        for (StepDTO step : steps) {
+            System.out.println(step.getVariables());
         }
 
         return steps;
